@@ -6,10 +6,29 @@ from move import Move
 class Board:
     def __init__(self):
         self.squares =[[0,0,0,0,0,0,0,0] for col in range(COLS)]
-
+        self.last_move = None
         self._create()
         self._add_pieces("white")
         self._add_pieces("black")
+
+    def move(self,piece, move):
+        initial = move.initial
+        final = move.final
+        #consol move update
+        self.squares[initial.row][initial.col].piece =  None
+        self.squares[final.row][final.col].piece = piece
+
+        #move
+        piece.moved = True
+
+        #clear valid moves
+        piece.clear_moves()
+
+        #set last move
+        self.last_move = move
+        
+    def valid_move(self, piece, move):
+        return move in piece.moves
 
     def calc_moves(self, piece, row, col):
 
@@ -76,13 +95,97 @@ class Board:
                         #append new move
                         piece.add_move(move)
                     
-        if isinstance(piece, Pawn): pawn_moves()
+        def straightline_moves(incrs):
+            for incr in incrs:
+                row_incr, col_incr = incr
+                possible_move_row = row + row_incr
+                possible_move_col = col + col_incr
 
+                while True:
+                    if Square.in_range(possible_move_row,possible_move_col):
+                        # create squares of the possible new moves
+                        initial = Square(row, col)
+                        final = Square(possible_move_row,possible_move_col)
+                        move = Move(initial, final)
+                        # empty = continue looping
+                        if self.squares[possible_move_row][possible_move_col].isempty():
+                            # append new move
+                            piece.add_move(move)
+                        # has enemy piece
+                        if self.squares[possible_move_row][possible_move_col].has_enemy_piece(piece.color):
+                            # append new move
+                            piece.add_move(move)
+                            break
+                        # has team piece
+                        if self.squares[possible_move_row][possible_move_col].has_team_piece(piece.color):
+                            break
+
+                    #not in range
+                    else: break
+                    # increments
+                    possible_move_row = possible_move_row + row_incr
+                    possible_move_col = possible_move_col + col_incr
+                
+        def king_moves():
+            adjs = [
+                (row-1,col), #up
+                (row-1,col+1), #up right
+                (row, col+1), # right
+                (row+1,col+1), # down, right
+                (row+1, col), # down
+                (row+1, col-1), #down, left
+                (row, col-1), # left
+                (row-1, col-1), # up, left
+            ]
+
+            for possible_move in adjs:
+                possible_move_row, possible_move_col = possible_move
+                if Square.in_range(possible_move_row,possible_move_col):
+                    if self.squares[possible_move_row][possible_move_col].isempty_or_enemy(piece.color):
+                        #create squares of new move
+                        initial = Square(row, col)
+                        final = Square(possible_move_row, possible_move_col) #piece = piece
+                        #create move
+                        move=Move(initial, final)
+                        #append new valid move
+                        piece.add_move(move)
+
+            #castling moves
+            # queen castling
+            # king castling
+
+
+        if isinstance(piece, Pawn): pawn_moves()
         elif isinstance(piece, Knight): knight_moves()
-        elif isinstance(piece, Bishop): pass
-        elif isinstance(piece, Rook): pass
-        elif isinstance(piece, Queen): pass
-        elif isinstance(piece, King): pass
+        elif isinstance(piece, Bishop): 
+            straightline_moves(
+                [(-1,1), #up right
+                 (-1,-1), # ip left
+                 (1,1), #down right
+                 (1,-1), #down left)
+                ])
+                               
+        elif isinstance(piece, Rook): 
+            straightline_moves(
+                [(-1,0), #up 
+                 (1,0), #down
+                 (0,1), #ight
+                 (0,-1), #left
+                ])
+        elif isinstance(piece, Queen): 
+            straightline_moves(
+                [(-1,1), #up right
+                 (-1,-1), #up left
+                 (1,1), #down right
+                 (1,-1), #down left
+                 (-1,0), #up 
+                 (1,0), #down
+                 (0,1), #ight
+                 (0,-1), #left
+                ])
+
+        elif isinstance(piece, King):
+            king_moves()
 
         
 
@@ -114,7 +217,6 @@ class Board:
         # rooks
         self.squares[row_other][0] = Square(row_other, 2, Rook(color))
         self.squares[row_other][7] = Square(row_other, 5, Rook(color))
-
         # queen
         self.squares[row_other][3] = Square(row_other, 3, Queen(color))
 
