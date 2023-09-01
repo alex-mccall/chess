@@ -4,6 +4,9 @@ class Square:
         self.col = col
         self.piece = piece
 
+    def __eq__(self,other):
+        return self.row == other.row and self.col == other.col
+
     def has_piece(self):
         return self.piece != None
     
@@ -14,11 +17,9 @@ class Square:
         return not self.has_piece()
 
     def has_enemy_piece(self, color):
-        print("hello")
         return(self.has_piece() and self.piece.color != color)
     
     def isempty_or_enemy(self, color):
-        print("world")
         return(self.isempty() or self.has_enemy_piece(color))
 
 
